@@ -66,9 +66,10 @@ if [ "$option" == 1 ]; then
 
     let sec=$min*60
     sleep $sec
-    log=$(tail -n 600 /var/log/syslog | awk -v d1="$(date --date="-$min min" "+%b %_d %H:%M")" -v d2="$(date "+%b %_d %H:%M")" '$0 > d1 && $0 < d2 || $0 ~ d2' | grep "Heard")
+    log1=$(tail -n 900 /var/log/syslog | awk -v d1="$(date --date="-$min min" "+%b %_d %H:%M")" -v d2="$(date "+%b %_d %H:%M")" '$0 > d1 && $0 < d2 || $0 ~ d2' | grep "Heard")
+    log2=$(tail -n 900 /var/log/messages | awk -v d1="$(date --date="-$min min" "+%b %_d %H:%M")" -v d2="$(date "+%b %_d %H:%M")" '$0 > d1 && $0 < d2 || $0 ~ d2' | grep "Heard")
 
-    if [ -z "$log" ]; then
+    if [ -z "$log1" ] && [ -z "$log2" ]; then
         logger "No modem connection for $min minute(s)"
     else
         logger "BBA Mode canceled due to detected modem connection"
