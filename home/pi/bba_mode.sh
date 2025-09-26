@@ -81,6 +81,7 @@ if [ "$option" == 0 ] || [ "$option" == 1 ]; then
 
     #kill sessions of me older than this one
     pgrep -f bba_mode.sh | sort -n | grep -vw $$ | head -n -1 | xargs -r sudo kill
+    sudo systemctl stop remote_bba_mode &
 
     ech0=$(grep -m 1 "eth=" "$eth_routesh" | cut -d '"' -f 2)
     ech1=$(grep -m 1 "dhcp_range_start=" "$eth_routesh" | cut -d '"' -f 2)
