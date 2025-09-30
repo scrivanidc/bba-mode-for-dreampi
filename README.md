@@ -27,7 +27,7 @@ This project monitors DNS traffic from a Dreamcast console using Raspberry Pi an
 - Logs DNS and Dreamcast traffic to `/var/log/iptables.log`
 
 ## Download direct to RaspberryPi
-wget https://github.com/scrivanidc/bba_mode_for_dreampi/raw/main/bba_mode_2.0_installer.zip
+wget https://github.com/scrivanidc/bba-mode-for-dreampi/raw/refs/heads/main/bba_mode_2.0_installer.zip
 
 ## Installation
 ```bash
