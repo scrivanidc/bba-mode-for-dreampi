@@ -14,10 +14,10 @@ min=$2
 # Rev1.1 - jun/2023 - Rev1.2 sep/2023 - Rev.1.3 jan/2024 - Rev.1.4 Sep/2025
 
 #BBA Mode tool files locations
-bba_modesh="/home/pi/dreampi/bba_mode.sh"
-eth_routesh="/home/pi/dreampi/bba_route.sh"
-bba_binsh="/home/pi/dreampi/bba_bin.sh"
-bba_binpy="/home/pi/dreampi/bba_bin.py"
+bba_modesh="/home/pi/dreampi/bba_mode/bba_mode.sh"
+eth_routesh="/home/pi/dreampi/bba_mode/bba_route.sh"
+bba_binsh="/home/pi/dreampi/bba_mode/bba_bin.sh"
+bba_binpy="/home/pi/dreampi/bba_mode/bba_bin.py"
 bba_mac="/home/pi/dreampi/bba_mac.txt"
 #files need to be in Dreampi bin directory
 

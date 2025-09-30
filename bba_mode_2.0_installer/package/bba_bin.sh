@@ -11,9 +11,9 @@ fi
 # Rev1.1 - jun/2023 - Rev1.2 sep/2023 - Rev.1.3 jan/2024 - Rev.2.0 Sep/2025
 
 #BBA Mode tool files locations
-eth_routesh="/home/pi/dreampi/bba_route.sh"
-bba_binsh="/home/pi/dreampi/bba_bin.sh"
-bba_binpy="/home/pi/dreampi/bba_bin.py"
+eth_routesh="/home/pi/dreampi/bba_mode/bba_route.sh"
+bba_binsh="/home/pi/dreampi/bba_mode/bba_bin.sh"
+bba_binpy="/home/pi/dreampi/bba_mode/bba_bin.py"
 
 clean_session() {
   killall -q tcpdump 2>/dev/null

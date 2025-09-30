@@ -25,7 +25,7 @@ def scan_mac_address():
     mac = get_mac()
 
     try:
-        with open("/home/pi/dreampi/bba_mac.txt", "r") as file:
+        with open("/home/pi/dreampi/bba_mode/bba_mac.txt", "r") as file:
            bba_mac = file.readline().strip().replace("-", ":")
         if bba_mac and not bba_mac.startswith("#") and re.match(r'^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$', bba_mac):
             mac = int(bba_mac.replace(":", ""), 16)

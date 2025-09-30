@@ -69,7 +69,7 @@ echo "Installing/Updating Classic BBA Mode...
 
 rm -f /home/pi/bba_mode.sh 2> /dev/null
 rm -f /home/pi/eth_route.sh 2> /dev/null
-rm -f /home/pi/bba* 2> /dev/null
+rm -f /home/pi/dreampi/bba* 2> /dev/null
 cp bba* /home/pi/dreampi/bba_mode/
 chmod +x /home/pi/dreampi/bba*.sh
 ln -s /home/pi/dreampi/bba_mode/bba_mode.sh /usr/local/bin/bba_mode
