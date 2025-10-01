@@ -30,7 +30,7 @@ sudo systemctl restart rsyslog
 
 echo "Installation/Update complete. Service is running.
 
--------------------------------------------------------
+----------------------------------------------------------------------
 Remote BBA Mode acts just when you stop dreampi
 service or unplug usb modem.
 
@@ -54,7 +54,7 @@ with the correct game identification.
 Naturally it depends on the RPi being active.
 
 Practical command: journalctl -u remote_bba_mode.service -f
------------------------------------------------------
+----------------------------------------------------------------------
 
 Next is: Classic BBA Mode, which connects the BBA to the RPI's RJ45 port and uses it as a Wi-Fi station, still relevant, and is updated/refactored.
 "

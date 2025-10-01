@@ -120,7 +120,7 @@ fi
 
 if [ "$option" == 0 ] || [ "$option" == 1 ]; then
     clean_session
-	current_tty=$(tty)
+    current_tty=$(tty)
     if [ "$current_tty" == "/dev/tty1" ]; then
         bash -c "$bba_binsh 0" | tee /tmp/bba.log
     else
@@ -136,13 +136,13 @@ if [ "$option" == 2 ]; then
  echo "How many minutes do you want BBA Mode to start after turning on the system?"
  echo "Type the number or press enter for default time 10"
  read -p '> ' v
- 
+
  if ! [[ $v =~ $chk ]]; then echo "Not a number"; exit 0; fi 
  if [ -z $v ]; then v=10; fi
- 
+
  sed -i '/dnsmasq/d;/bba_mode/d;/^exit/i rm -f /etc/dnsmasq.d/custom* 2> /dev/null\nbash '$bba_modesh' 1 '$v' &\n' /etc/rc.local
  sed -i ':L;N;s/^\n$//;t L' /etc/rc.local
- 
+
  echo ""
  echo "BBA Mode has been successfully enabled to start $v after startup. (rc.local)"
  echo "-----------------------------------------------------------------------------"
@@ -155,10 +155,10 @@ if [ "$option" == 3 ]; then
  echo ""
  echo "Removing BBA Mode from system startup (rc.local)..."
  echo ""
- 
+
  sed -i '/bba_mode/d' /etc/rc.local
  sed -i ':L;N;s/^\n$//;t L' /etc/rc.local
- 
+
  echo "BBA Mode has been successfully disabled from system startup."
  echo "------------------------------------------------------------"
  exit 0

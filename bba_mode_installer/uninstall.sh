@@ -13,7 +13,6 @@ fi
 echo "
 Uninstalling Classic and Remote BBA Mode...
 "
-
 echo "Stop and disable service"
 systemctl stop remote_bba_mode.service || true 2> /dev/null
 systemctl disable remote_bba_mode.service || true 2> /dev/null
