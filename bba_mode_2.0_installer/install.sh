@@ -1,9 +1,4 @@
 #!/bin/bash
-set -e
-
-if [ "$EUID" -ne 0 ]; then
-  exec sudo "$0" "$@"
-fi
 
 # BBA Mode tool written by scrivanidc@gmail.com
 # -------------------------------------------------------------------------
@@ -13,26 +8,25 @@ fi
 
 cd package/
 
-echo "Installing/Updating Remote BBA Mode...
+echo "
+Installing/Updating Remote BBA Mode..."
+mkdir -p /home/pi/dreampi/bba_mode
 
-"
-mkdir /home/pi/dreampi/bba_mode
-
-# Copy script
+echo "Copy scripts"
 cp remote_bba_mode.py /home/pi/dreampi/bba_mode/
+cp bba* /home/pi/dreampi/bba_mode/
 
-# Copy systemd service
-cp remote_bba_mode.service /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable remote_bba_mode.service
-systemctl start remote_bba_mode.service
+echo "Copy systemd service"
+sudo cp remote_bba_mode.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable remote_bba_mode.service
+sudo systemctl start remote_bba_mode.service
 
-# Configure rsyslog
-cp 10-iptables.conf /etc/rsyslog.d/
-touch /var/log/iptables.log
-chmod 666 /var/log/iptables.log
-systemctl restart rsyslog
-
+echo "Configure rsyslog"
+sudo cp 10-iptables.conf /etc/rsyslog.d/
+sudo touch /var/log/iptables.log
+sudo chmod 666 /var/log/iptables.log
+sudo systemctl restart rsyslog
 
 echo "Installation/Update complete. Service is running.
 
@@ -41,7 +35,6 @@ Remote BBA Mode acts just when you stop dreampi
 service or unplug usb modem.
 
 If modem is plugged, DreamPi restarts
-
 Dreamcast uses RPi as Gateway and DNS Server
 
 Dreamcast BBA settings example:
@@ -58,30 +51,34 @@ It calls Remote because you connect your DC direct
 to any router as usual and will communicate
 with RPi to start and stop DCNow sessions
 with the correct game identification.
-
 Naturally it depends on the RPi being active.
+
+Practical command: journalctl -u remote_bba_mode.service -f
 -----------------------------------------------------
 
+Next is: Classic BBA Mode, which connects the BBA to the RPI's RJ45 port and uses it as a Wi-Fi station, still relevant, and is updated/refactored.
 "
-
+sleep 3
 echo "Installing/Updating Classic BBA Mode...
-"
-
+Remove old verion files"
+sleep 1
 rm -f /home/pi/bba_mode.sh 2> /dev/null
 rm -f /home/pi/eth_route.sh 2> /dev/null
 rm -f /home/pi/dreampi/bba* 2> /dev/null
-cp bba* /home/pi/dreampi/bba_mode/
-chmod +x /home/pi/dreampi/bba*.sh
-ln -s /home/pi/dreampi/bba_mode/bba_mode.sh /usr/local/bin/bba_mode
-
+sleep 1
+echo "Give execution permission to bash files"
+chmod +x /home/pi/dreampi/bba_mode/bba*.sh
+sleep 1
+echo "Creat symbolic link: bba_mode"
+sudo ln -s /home/pi/dreampi/bba_mode/bba_mode.sh /usr/local/bin/bba_mode
+sleep 1
 echo "Installation/Update complete.
 
 Note: Classic BBA Mode (hotspot) start command has changed:
-
 FROM: ./bba_mode.sh
 at /home/pi/
 
 TO: bba_mode
-at any place
+at any place"
 
-Finish."
+exit 0

@@ -57,10 +57,10 @@ fi
 echo "
 Remote BBA Mode: 6,7"
 remote_status=$(systemctl is-active remote_bba_mode)
-if [ "$remote_status" == "active" ]; then 
-    echo -e "Status: \e[1;32m${remote_status}\e[0m"
+if [ "$remote_status" == "active" ]; then
+    echo -e "Status: \e[1;32m${remote_status^}\e[0m"
 else
-    echo -e "Status: \e[1;31m${remote_status}\e[0m"
+    echo -e "Status: \e[1;31m${remote_status^}\e[0m"
 fi
 
 if [ -z "$1" ]; then
