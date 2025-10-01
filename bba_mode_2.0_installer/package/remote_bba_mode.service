@@ -1,0 +1,15 @@
+[Unit]
+Description=Remote BBA_Mode: Dreamcast uses RPI as Gateway and DNS Server to trigger DCNOW
+After=network.target
+After=dreampi.service
+
+[Service]
+ExecStart=/usr/bin/python /home/pi/dreampi/bba_mode/remote_bba_mode.py
+WorkingDirectory=/home/pi/dreampi/bba_mode/
+Restart=on-failure
+SyslogIdentifier=bba_mode
+User=root
+
+[Install]
+WantedBy=multi-user.target
+
