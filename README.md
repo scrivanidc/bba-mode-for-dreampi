@@ -25,14 +25,15 @@ This project monitors DNS traffic from a Dreamcast console using Raspberry Pi an
 - Starts and stops Dreamcast Now sessions based on traffic
 - Automatically disables monitoring if `dreampi.service` is active
 - Logs DNS and Dreamcast traffic to `/var/log/iptables.log`
+- It can work with custom mac address to DCNow profile
 
 ## Download direct to RaspberryPi
-wget https://github.com/scrivanidc/bba-mode-for-dreampi/raw/refs/heads/main/bba_mode_2.0_installer.zip
+wget https://github.com/scrivanidc/bba-mode-for-dreampi/raw/refs/heads/main/bba_mode_installer.zip
 
 ## Installation
 ```bash
-unzip bba_mode_2.0_installer.zip
-cd bba_mode_2.0_installer
+unzip bba_mode_installer.zip
+cd bba_mode_installer
 ./install.sh
 ```
 
