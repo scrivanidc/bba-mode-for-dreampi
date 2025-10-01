@@ -26,11 +26,13 @@ def scan_mac_address():
 
     try:
         with open("/home/pi/dreampi/bba_mode/bba_mac.txt", "r") as file:
+           bba_mac = None
            bba_mac = file.readline().strip().replace("-", ":")
         if bba_mac and not bba_mac.startswith("#") and re.match(r'^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$', bba_mac):
             mac = int(bba_mac.replace(":", ""), 16)
-    except (FileNotFoundError, IOError) as e:
-        logger.info("Alternative mac address file not found")
+            logger.info("Custom Mac Address file found, using for DCNow profile")
+    except Exception as e:
+        logger.info("Custom Mac Address file not found, using default from network interface")
 
     return sha256(':'.join(("%012X" % mac)[i:i+2] for i in range(0, 12, 2))).hexdigest()
 

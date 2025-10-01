@@ -153,7 +153,7 @@ def dns():
     print("")
     print("Trying DNS Lookup")
     var=int(sys.argv[1])
-    
+
     game_hosts = {
         1:  ("game01.st-pso.games.sega.net", "Phantasy Star Online"),
         2:  ("master.quake3arena.com", "Quake III Arena"),
@@ -191,7 +191,7 @@ def dns():
         34: ("dreampipe.net", "Web Browsing"),
         35: ("master.id-q3c.games.sega.net", "Quake III Arena Custom Maps")
     }
-    
+ 
     host, game_name = game_hosts.get(var, ("google.com", "Unknown"))
     port = 6500 if var == 24 else default_port
 
@@ -200,9 +200,9 @@ def dns():
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((host, port))
         s.close()
-        print("\nHost reached: {}:{}\nCheck Dreamcast Now page\n".format(host, port))
+        print("\nHost reached: {}:{}\n\nCheck Dreamcast Now page\n".format(host, port))
     except socket.error:
-        print("\nHost not reached: {}:{}\nCheck Dreamcast Now page\n".format(host, port))
+        print("\nHost not reached: {}:{}\n\nCheck Dreamcast Now page\n".format(host, port))
 
 def main():
     try:
@@ -218,7 +218,7 @@ def main():
             subprocess.check_output("tcpdump -i " + dev + " -vv > /tmp/capture1 &", shell=True)
         else:
             dns()
-        
+
         bba_dcnow_config.start()
         dcnow = DreamcastNowService()
         dcnow.go_online("")
@@ -245,7 +245,7 @@ def main():
                         logger.info(line.strip())
 
                 subprocess.check_output("truncate -s 0 /tmp/capture*", shell=True)
-                
+
                 lines = sh.tail("-n", "3", "/var/log/messages")
                 for line in lines.splitlines():
                     if "link_down" in line:

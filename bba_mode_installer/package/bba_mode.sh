@@ -120,7 +120,12 @@ fi
 
 if [ "$option" == 0 ] || [ "$option" == 1 ]; then
     clean_session
-	bash -c "$bba_binsh 0" | tee /tmp/bba.log &
+	current_tty=$(tty)
+    if [ "$current_tty" == "/dev/tty1" ]; then
+        bash -c "$bba_binsh 0" | tee /tmp/bba.log
+    else
+        bash -c "$bba_binsh 0" | tee /tmp/bba.log &
+    fi
     exit 0
 fi
 
