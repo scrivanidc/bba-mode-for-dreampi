@@ -16,10 +16,9 @@ from uuid import getnode as get_mac
 logger = logging.getLogger('dcnow')
 API_ROOT = "https://dcnow-2016.appspot.com"
 UPDATE_END_POINT = "/api/update/{mac_address}/"
-
 UPDATE_INTERVAL = 15
-
 CONFIGURATION_FILE = os.path.expanduser("~/.dreampi.json")
+gameloft = False
 
 def scan_mac_address():
     mac = get_mac()
@@ -46,6 +45,9 @@ class DreamcastNowThread(threading.Thread):
         def post_update():
             if not self._service._enabled:
                 return
+            global gameloft
+            if gameloft:
+                return
             lines = [ x for x in sh.tail("/var/log/syslog", "-n", "30", _iter=True) ]
             dns_query = None
             for line in lines[::-1]:
@@ -54,6 +56,8 @@ class DreamcastNowThread(threading.Thread):
                     remainder = line[line.find("query[A]") + len("query[A]"):].strip()
                     domain = remainder.split(" ", 1)[0].strip()
                     dns_query = sha256(domain).hexdigest()
+                    if "gameloft" in domain:
+                        gameloft=True
                     if "appspot" in domain:
                         pass
                     else:

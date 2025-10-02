@@ -18,7 +18,7 @@ bba_modesh="/home/pi/dreampi/bba_mode/bba_mode.sh"
 eth_routesh="/home/pi/dreampi/bba_mode/bba_route.sh"
 bba_binsh="/home/pi/dreampi/bba_mode/bba_bin.sh"
 bba_binpy="/home/pi/dreampi/bba_mode/bba_bin.py"
-bba_mac="/home/pi/dreampi/bba_mac.txt"
+bba_mac="/home/pi/dreampi/bba_mode/bba_mac.txt"
 #files need to be in Dreampi bin directory
 
 chk='^[0-9]+$'
@@ -121,7 +121,7 @@ fi
 if [ "$option" == 0 ] || [ "$option" == 1 ]; then
     clean_session
     current_tty=$(tty)
-    if [ "$current_tty" == "/dev/tty1" ]; then
+    if [ "$current_tty" == "/dev/tty1" ] || [ "$2" == 0 ]; then
         bash -c "$bba_binsh 0" | tee /tmp/bba.log
     else
         bash -c "$bba_binsh 0" | tee /tmp/bba.log &
