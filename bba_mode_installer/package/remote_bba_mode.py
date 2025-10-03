@@ -9,6 +9,8 @@ import logging.handlers
 import glob
 import os
 import socket
+import requests
+import uuid
 from bba_dcnow import DreamcastNowService
 
 # Remote BBA Mode tool written by scrivanidc@gmail.com - sep/2025
@@ -17,7 +19,7 @@ from bba_dcnow import DreamcastNowService
 # ---------------------------------------------------------------
 
 DNS_PORT = 53
-LOG_FILE = "/var/log/iptables.log"
+IPTABLES_LOG = "/var/log/iptables.log"
 CHECK_INTERVAL = 5
 TIMEOUT = 60
 SERVICE_DEPENDENCY = "dreampi.service"
@@ -31,6 +33,9 @@ session_closed = False
 last_traffic_time = None
 last_traffic_line = None
 restart_dreampi = 0
+
+version_file = "/home/pi/dreampi/bba_mode/bba_version.txt"
+log_file = "/home/pi/dreampi/bba_mode/bba_mode.log"
 
 logger = logging.getLogger("remote_bba_mode")
 logger.setLevel(logging.INFO)
@@ -52,9 +57,43 @@ def check_internet_connection():
             pass
     return False
 
+def get_country():
+    try:
+        response = requests.get("https://ipinfo.io/json", timeout=5)
+        data = response.json()
+        return data.get("country", "unknown")
+    except:
+        return "unknown"
+        
+def get_or_create_uuid(log_file):
+    try:
+        if os.path.exists(log_file):
+            with open(log_file, "r") as f:
+                for line in f:
+                    if line.startswith("UUID:"):
+                        current_uuid = line.strip().split("UUID:")[1].strip()
+                        print("UUID: {}".format(current_uuid))
+                        return current_uuid
+
+        new_uuid = str(uuid.uuid4())
+        with open(log_file, "r") as f:
+            content = f.read()
+        with open(log_file, "w") as f:
+            f.write("UUID: {}\n".format(new_uuid))
+            f.write(content)
+            print("UUID (new): {}".format(new_uuid))
+        return new_uuid
+
+    except:
+        new_uuid = str(uuid.uuid4())
+        with open(log_file, "w") as f:
+            f.write("UUID: {}\n".format(new_uuid))
+            print("UUID (new): {}".format(new_uuid))
+        return new_uuid
+
 def get_local_version():
     try:
-        with open("/home/pi/dreampi/bba_mode/bba_version.txt", "r") as f:
+        with open(version_file, "r") as f:
             return f.read().strip()
     except:
         return "0.0"
@@ -63,25 +102,72 @@ def get_remote_version():
     try:
         return subprocess.check_output(["wget", "-qO-", "https://raw.githubusercontent.com/scrivanidc/bba-mode-for-dreampi/main/bba_mode_installer/package/bba_version.txt"]).decode().strip()
     except:
-        return None
+        return get_local_version()
+        
+        
+def do_post(desc, version):
+    try:
+        requests.post("https://script.google.com/macros/s/AKfycbxQJB5SbjWumGdfukCEmV_fqU4BBUwcbgmxWWtKwBOOjldruw5sL6x5FGqT2XOzCbFh/exec", json={
+            "hostname": socket.gethostname(),
+            "version": version,
+            "desc": desc,
+            "country": get_country(),
+            "uuid": uuid_value
+        }, timeout=5)
+        
+        if os.path.exists(log_file):
+            with open(log_file, "a") as f:
+                f.write("Version {} - {} at {}\n".format(version, desc, time.strftime("%Y-%m-%d %H:%M:%S")))
+                
+        print("Version {} successfully - {}.".format(version, desc))
+        
+    except Exception as e:
+        print("Failed to {} version {}: {}".format(desc, version, e))
 
-def check_for_update():
+
+def control_version():
+
     while not check_internet_connection():
         print("Waiting for internet connection...")
         time.sleep(3)
 
-    remote_version = get_remote_version()
-    local_version = get_local_version()
+    global uuid_value, current_version
+    uuid_value = get_or_create_uuid(log_file)
+    current_version = get_local_version()
+    
+    desc = "register"
 
+    already_logged = False
+
+    if os.path.exists(log_file):
+        with open(log_file, "r") as f:
+            for line in f:
+                if current_version in line:
+                    already_logged = True
+                    break
+                    
+    if not already_logged:
+    
+        do_post(desc, current_version)
+        
+    else:
+        print("Version {} already registered previously.".format(current_version))
+
+
+def check_for_update():
+
+    remote_version = get_remote_version()
+    desc = "update"
+    
     if not remote_version:
         print("Could not retrieve remote version.")
         return
 
-    if remote_version == local_version:
-        print("BBA Mode is up to date (v{}).".format(local_version))
+    if remote_version == current_version:
+        print("BBA Mode is up to date (v{}).".format(current_version))
         return
 
-    print("New version available: {} (local: {})".format(remote_version, local_version))
+    print("New version available: {} (local: {})".format(remote_version, current_version))
     update_url = "https://raw.githubusercontent.com/scrivanidc/bba-mode-for-dreampi/main/bba_mode_installer/package/bba_update.txt"
     zip_url = "https://raw.githubusercontent.com/scrivanidc/bba-mode-for-dreampi/main/bba_mode_installer.zip"
     zip_file = "/tmp/bba_mode_installer.zip"
@@ -105,16 +191,23 @@ def check_for_update():
         install_path = os.path.join(extract_dir, "install.sh")
         if os.path.isfile(install_path):
             print("Running installer...")
-            subprocess.call(["sudo", "-u", "pi", "bash", "install.sh"], cwd=extract_dir)
-            with open("/home/pi/dreampi/bba_mode/bba_version.txt", "w") as f:
-                f.write(remote_version)
-            print("Update complete.")
+            
+            try:
+                subprocess.call(["sudo", "-u", "pi", "bash", "install.sh"], cwd=extract_dir)
+                with open(version_file, "w") as f:
+                    f.write(remote_version)
+                print("Update complete.")
+                
+                do_post(desc, remote_version)
+                
+            except Exception as e:
+                print("Installation failed: {}".format(e))
         else:
             print("Installer not found.")
     except Exception as e:
         print("Update failed: {}".format(e))
-
-
+        
+        
 def is_dreampi_active():
     try:
         output = subprocess.check_output(["systemctl", "is-active", SERVICE_DEPENDENCY]).strip()
@@ -134,7 +227,7 @@ def setup_iptables_logging():
 
 def clean_logfile():
     try:
-        with open(LOG_FILE, "w") as f:
+        with open(IPTABLES_LOG, "w") as f:
             f.write("")
         logger.info("iptables log cleared.")
     except Exception as e:
@@ -155,7 +248,7 @@ def cleanup_iptables_logging():
 
 def get_recent_ips(prefix, lines=100):
     try:
-        with open(LOG_FILE, "r") as f:
+        with open(IPTABLES_LOG, "r") as f:
             logs = f.readlines()[-lines:]
         sources = set()
         for line in logs:
@@ -172,7 +265,7 @@ def get_recent_ips(prefix, lines=100):
 
 def get_last_traffic_line(ip):
     try:
-        with open(LOG_FILE, "r") as f:
+        with open(IPTABLES_LOG, "r") as f:
             logs = f.readlines()[-100:]
         for line in reversed(logs):
             if "DC_TRAFFIC:" in line and ("SRC=%s" % ip) in line:
@@ -259,6 +352,7 @@ def monitor_dns_activity():
         time.sleep(CHECK_INTERVAL)
 
 if __name__ == "__main__":
+    control_version()
     check_for_update()
     logger.info("Starting Dreamcast DNS monitor...")
     signal.signal(signal.SIGTERM, signal_handler)
