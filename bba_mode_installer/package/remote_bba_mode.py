@@ -36,6 +36,12 @@ restart_dreampi = 0
 
 version_file = "/home/pi/dreampi/bba_mode/bba_version.txt"
 log_file = "/home/pi/dreampi/bba_mode/bba_mode.log"
+script_url= "https://script.google.com/macros/s/AKfycbxQJB5SbjWumGdfukCEmV_fqU4BBUwcbgmxWWtKwBOOjldruw5sL6x5FGqT2XOzCbFh/exec"
+version_url = "https://raw.githubusercontent.com/scrivanidc/bba-mode-for-dreampi/main/bba_mode_installer/package/bba_version.txt"
+update_url = "https://raw.githubusercontent.com/scrivanidc/bba-mode-for-dreampi/main/bba_mode_installer/package/bba_update.txt"
+zip_url = "https://raw.githubusercontent.com/scrivanidc/bba-mode-for-dreampi/main/bba_mode_installer.zip"
+zip_file = "/tmp/bba_mode_installer.zip"
+extract_dir = "/tmp/bba_mode_installer"
 
 logger = logging.getLogger("remote_bba_mode")
 logger.setLevel(logging.INFO)
@@ -57,13 +63,15 @@ def check_internet_connection():
             pass
     return False
 
-def get_country():
+def get_location():
     try:
         response = requests.get("https://ipinfo.io/json", timeout=5)
         data = response.json()
-        return data.get("country", "unknown")
+        country = data.get("country", "unknown")
+        city = data.get("city", "unknown")
+        return country, city
     except:
-        return "unknown"
+        return "unknown", "unknown"
         
 def get_or_create_uuid(log_file):
     try:
@@ -100,18 +108,23 @@ def get_local_version():
 
 def get_remote_version():
     try:
-        return subprocess.check_output(["wget", "-qO-", "https://raw.githubusercontent.com/scrivanidc/bba-mode-for-dreampi/main/bba_mode_installer/package/bba_version.txt"]).decode().strip()
+        return subprocess.check_output(["wget", "-qO-", version_url]).decode().strip()
     except:
         return get_local_version()
         
         
 def do_post(desc, version):
+    country, city = get_location()
+    hostname = socket.gethostname()
+    software = "bba_mode"
     try:
-        requests.post("https://script.google.com/macros/s/AKfycbxQJB5SbjWumGdfukCEmV_fqU4BBUwcbgmxWWtKwBOOjldruw5sL6x5FGqT2XOzCbFh/exec", json={
-            "hostname": socket.gethostname(),
+        requests.post(script_url, json={
+            "hostname": hostname,
+            "software": software,
             "version": version,
             "desc": desc,
-            "country": get_country(),
+            "country": country,
+            "city": city,
             "uuid": uuid_value
         }, timeout=5)
         
@@ -130,6 +143,11 @@ def control_version():
     while not check_internet_connection():
         print("Waiting for internet connection...")
         time.sleep(3)
+        
+    update_flag = subprocess.check_output(["wget", "-qO-", update_url]).decode().strip()
+    if update_flag.lower() != "yes":
+        print("Update flag is disabled.")
+        return
 
     global uuid_value, current_version
     uuid_value = get_or_create_uuid(log_file)
@@ -152,8 +170,10 @@ def control_version():
         
     else:
         print("Version {} already registered previously.".format(current_version))
-
-
+        
+    check_for_update()
+    
+    
 def check_for_update():
 
     remote_version = get_remote_version()
@@ -168,17 +188,8 @@ def check_for_update():
         return
 
     print("New version available: {} (local: {})".format(remote_version, current_version))
-    update_url = "https://raw.githubusercontent.com/scrivanidc/bba-mode-for-dreampi/main/bba_mode_installer/package/bba_update.txt"
-    zip_url = "https://raw.githubusercontent.com/scrivanidc/bba-mode-for-dreampi/main/bba_mode_installer.zip"
-    zip_file = "/tmp/bba_mode_installer.zip"
-    extract_dir = "/tmp/bba_mode_installer"
 
     try:
-        update_flag = subprocess.check_output(["wget", "-qO-", update_url]).decode().strip()
-        if update_flag.lower() != "yes":
-            print("Update flag is disabled.")
-            return
-
         if os.path.exists(zip_file):
             os.remove(zip_file)
         if os.path.exists(extract_dir):
@@ -352,11 +363,10 @@ def monitor_dns_activity():
         time.sleep(CHECK_INTERVAL)
 
 if __name__ == "__main__":
-    control_version()
-    check_for_update()
     logger.info("Starting Dreamcast DNS monitor...")
     signal.signal(signal.SIGTERM, signal_handler)
     try:
+        control_version()
         monitor_dns_activity()
     finally:
         cleanup_iptables_logging()
