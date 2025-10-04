@@ -17,16 +17,6 @@ Remote BBA_Mode: Dreamcast uses RPI as Gateway and DNS Server to trigger DCNOW
 
 This project monitors DNS traffic from a Dreamcast console using Raspberry Pi and triggers Dreamcast Now sessions automatically.
 
-## Features
-
-- Acts only when DreamPi Modem Service is not running,
-   by removing the usb modem or stopping the service.
-- Detects Dreamcast DNS queries via iptables logging
-- Starts and stops Dreamcast Now sessions based on traffic
-- Automatically disables monitoring if `dreampi.service` is active
-- Logs DNS and Dreamcast traffic to `/var/log/iptables.log`
-- It can work with custom mac address to DCNow profile
-
 ## Download direct to RaspberryPi
 wget https://github.com/scrivanidc/bba-mode-for-dreampi/raw/refs/heads/main/bba_mode_installer.zip
 
@@ -42,8 +32,18 @@ cd bba_mode_installer
 ./uninstall.sh
 ```
 
+## Features
+- It can work with custom/auto generated mac address to
+   a different DCNow profile, check bba_mode menu, option 5
+- Acts only when DreamPi Modem Service is not running,
+   unplugging the usb modem or stopping the service.
+- DreamPi standard service restart if you plug the modem back in.
+- Detects Dreamcast DNS queries via iptables logging
+- Starts and stops Dreamcast Now sessions based on traffic
+- Automatically disables monitoring if `dreampi.service` is active
+- Logs DNS and Dreamcast traffic to `/var/log/iptables.log`
 
-What should I do now?
+## What should I do now?
 
 Context:
 You have a BBA and want your session visible on the Dreamcast Now website.
@@ -89,6 +89,9 @@ sudo systemctl restart remote_bba_mode.service (Restart the service)
 tail -f /var/log/syslog (General system log)
 ```
 
-
   <br>  
 Classic BBA Mode, which connects the BBA to the RPI's RJ45 port and uses it as a Wi-Fi station, still relevant, and is updated/refactored.
+
+  <br> 
+.
+<img width="812" height="675" alt="bba_mode" src="https://github.com/user-attachments/assets/a375ca0f-0db9-4956-a4c8-6f6493562182" />
