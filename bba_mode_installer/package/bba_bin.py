@@ -32,7 +32,7 @@ from datetime import datetime, timedelta
 # LAN Adapter HIT-0300 Fujitsu MB86967 10/10 Mbps 10Base-T
 # ----------------------------------------------------------------------------------
 
-logger = logging.getLogger('dreampi BBA Mode')
+logger = logging.getLogger('bba_mode')
 
 def check_internet_connection():
     """ Returns True if there's a connection """
@@ -221,7 +221,7 @@ def main():
 
         bba_dcnow_config.start()
         dcnow = DreamcastNowService()
-        dcnow.go_online("")
+        dcnow.go_online()
 
         logger.info("BBA Mode: DC Now Session Started")
 

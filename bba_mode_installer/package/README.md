@@ -7,7 +7,7 @@ Release 1   - jun/2023, Release 1.2 - sep/2023 , Release 1.3 - jan/2024, Release
 
 ## WHAT IS NEW?
 - Classic BBA Mode (Hotspot): 100% Refactored / Reviewed
-- Remote BBA Mode: See below
+- Remote BBA Mode: Brand new easier mode > See below
 
 
 # Remote BBA Mode for Dreamcast

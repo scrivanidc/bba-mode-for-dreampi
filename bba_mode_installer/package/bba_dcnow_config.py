@@ -77,6 +77,7 @@ def stop():
 
     if server:
         server.shutdown()
+        server.server_close()
 
     if thread:
         thread.join()

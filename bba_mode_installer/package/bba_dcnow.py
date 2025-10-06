@@ -17,7 +17,7 @@ logger = logging.getLogger('dcnow')
 API_ROOT = "https://dcnow-2016.appspot.com"
 UPDATE_END_POINT = "/api/update/{mac_address}/"
 UPDATE_INTERVAL = 15
-CONFIGURATION_FILE = os.path.expanduser("~/.dreampi.json")
+CONFIGURATION_FILE = os.path.expanduser("/home/pi/dreampi/bba_mode/.bba_dcnow.json")
 gameloft = False
 
 def scan_mac_address():
@@ -46,24 +46,31 @@ class DreamcastNowThread(threading.Thread):
             if not self._service._enabled:
                 return
             global gameloft
-            if gameloft:
-                return
-            lines = [ x for x in sh.tail("/var/log/syslog", "-n", "30", _iter=True) ]
+            lines = [ x for x in sh.tail("/var/log/syslog", "-n", "300", _iter=True) ]
             dns_query = None
             for line in lines[::-1]:
                 if "query[A]" in line:
                     # We did a DNS lookup, what was it?
                     remainder = line[line.find("query[A]") + len("query[A]"):].strip()
                     domain = remainder.split(" ", 1)[0].strip()
-                    dns_query = sha256(domain).hexdigest()
-                    if "gameloft" in domain:
-                        gameloft=True
+                    dns_query = sha256(domain).hexdigest()                      
+                    
+                    #Send monaco/pod/speed just once - Begin
+                    if gameloft and "gameloft" in domain: ## already sent, do not send again.
+                        dns_query = None
+                        break
+                    if "gameloft" in domain: ## first read, send.
+                        gameloft = True
+                        logger.info("Domain sent to DCNow API: " + domain)
+                        break
+                    #Send monaco/pod/speed just once - End
+
                     if "appspot" in domain:
                         pass
                     else:
-                        logger.info(domain)
+                        logger.info("Domain sent to DCNow API: " + domain)
                         break
-
+            
             user_agent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT), Dreamcast Now'
             header = { 'User-Agent' : user_agent }
             mac_address = self._service._mac_address
@@ -79,7 +86,7 @@ class DreamcastNowThread(threading.Thread):
             try:
                 post_update()
             except:
-                logger.exception("Couldn't update Dreamcast Now!")
+                logger.info("Couldn't update Dreamcast Now!")
             dcnow_run.wait(UPDATE_INTERVAL)
 
     def stop(self):
@@ -97,8 +104,10 @@ class DreamcastNowService(object):
         logger.setLevel(logging.INFO)
         handler = logging.handlers.SysLogHandler(address='/dev/log')
         logger.addHandler(handler)
+        formatter = logging.Formatter('%(name)s[%(process)d]: %(message)s')
+        handler.setFormatter(formatter)    
 
-    def update_mac_address(self, dreamcast_ip):
+    def update_mac_address(self):
         self._mac_address = scan_mac_address()
         logger.info("MAC address: {}".format(self._mac_address))
 
@@ -110,18 +119,40 @@ class DreamcastNowService(object):
                 content = json.loads(settings.read())
                 self._enabled = content["enabled"]
 
-    def go_online(self, dreamcast_ip):
+    def go_online(self):
         logger.propagate = False
         if not self._enabled:
             return
         global dcnow_run
         dcnow_run = threading.Event()
-        self.update_mac_address(dreamcast_ip)
+        self.update_mac_address()
         self._thread = DreamcastNowThread(self)
         self._thread.start()
+        logger.info("DC Now Session Started")
 
     def go_offline(self):
         global dcnow_run
-        dcnow_run.set()
-        self._thread.stop()
-        self._thread = None
+        try:
+            dcnow_run.set()
+            if self._thread:
+                self._thread.stop()
+                self._thread = None
+        except Exception:
+            pass
+        logger.info("DC Now Session Ended")
+        self.cleanup()
+        
+    def cleanup(self):
+        try:
+            if hasattr(self, "_thread") and self._thread:
+                self._thread.stop()
+                self._thread = None
+        except Exception:
+            pass
+
+        for handler in logger.handlers[:]:
+            logger.removeHandler(handler)
+            try:
+                handler.close()
+            except Exception:
+                pass
