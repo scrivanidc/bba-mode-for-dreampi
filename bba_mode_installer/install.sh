@@ -60,7 +60,7 @@ Next is: Classic BBA Mode, which connects the BBA to the RPI's RJ45 port and use
 "
 sleep 3
 echo "Installing/Updating Classic BBA Mode...
-Remove old verion files"
+Remove old version files"
 sleep 1
 sudo rm -f /home/pi/bba_mode.sh 2> /dev/null
 sudo rm -f /home/pi/eth_route.sh 2> /dev/null
