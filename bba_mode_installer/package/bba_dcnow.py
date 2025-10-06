@@ -53,7 +53,7 @@ class DreamcastNowThread(threading.Thread):
                     # We did a DNS lookup, what was it?
                     remainder = line[line.find("query[A]") + len("query[A]"):].strip()
                     domain = remainder.split(" ", 1)[0].strip()
-                    dns_query = sha256(domain).hexdigest()                      
+                    dns_query = sha256(domain).hexdigest()
                     
                     #Send monaco/pod/speed just once - Begin
                     if gameloft and "gameloft" in domain: ## already sent, do not send again.
@@ -131,8 +131,9 @@ class DreamcastNowService(object):
         logger.info("DC Now Session Started")
 
     def go_offline(self):
-        global dcnow_run
+        global dcnow_run, gameloft
         try:
+            gameloft = False
             dcnow_run.set()
             if self._thread:
                 self._thread.stop()
