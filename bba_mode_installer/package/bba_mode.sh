@@ -19,7 +19,6 @@ eth_routesh="/home/pi/dreampi/bba_mode/bba_route.sh"
 bba_binsh="/home/pi/dreampi/bba_mode/bba_bin.sh"
 bba_binpy="/home/pi/dreampi/bba_mode/bba_bin.py"
 bba_mac="/home/pi/dreampi/bba_mode/bba_mac.txt"
-#files need to be in Dreampi bin directory
 
 chk='^[0-9]+$'
 
@@ -47,8 +46,9 @@ bba_mode --help   > Parameters help
 
 Classic BBA Mode (hotspot): 0,1,2,3"
 device=$(grep -m 1 "eth=" "$eth_routesh" | cut -d '"' -f 2)
+gateway=$(grep -m 1 "ip_address=" "$eth_routesh" | cut -d '"' -f 2)
 classic_status=$(ip -o -4 addr show $device | awk '{print $4}' | cut -d/ -f1)
-if [ "$classic_status" == "192.168.2.1" ]; then
+if [ "$classic_status" == "$gateway" ]; then
     echo -e "Status: \e[1;32mActive\e[0m"
 else
     echo -e "Status: \e[1;31mInactive\e[0m"
@@ -74,8 +74,9 @@ echo "
  4  > Start Manual List Dreamcast Now
  5  > Manage Custom Mac Address (DCNow Profile)
  6  > Start Remote BBA Mode Service
- 7  > Stop Remote BBA Mode Service
- 8  > Just exit
+ 7  > Stop  Remote BBA Mode Service
+ 8  > Stop Classic BBA Mode Service
+ 9  > Just exit
 ------------------------------------------------------------"
     read -p 'Option: ' option
     if [[ ! $option =~ $chk && -n $option ]]; then echo "Not a number"; fi
@@ -121,6 +122,8 @@ fi
 if [ "$option" == 0 ] || [ "$option" == 1 ]; then
     clean_session
     current_tty=$(tty)
+	echo "Classic BBA Mode (hotspot)"
+	echo -e "Status: \e[1;32mActive\e[0m"
     if [ "$current_tty" == "/dev/tty1" ] || [ "$2" == 0 ]; then
         bash -c "$bba_binsh 0" | tee /tmp/bba.log
     else
@@ -301,7 +304,7 @@ if [ "$option" == 5 ]; then
                 echo "Successfully deactivated: $(cat "$bba_mac")"
                 ;;
             12)
-                mac_a=$(generate_mac^^)
+                mac_a=$(generate_mac)
                 echo "$mac_a" > "$bba_mac"
                 echo "Successfully generated and registered: $mac_a"
                 ;;
@@ -346,7 +349,6 @@ if [ "$option" == 5 ]; then
                 ;;
         esac
     fi
-	if ! is_valid_mac "$mac_a"; then > "$bba_mac"; fi
 	if ! [[ $mac_o =~ $chk ]]; then echo "Not a number"; fi
 	echo "
 BBA Mode is designed to use a custom MAC address in the Dreamcast Now profile, if registered, instead of the active network interface's MAC address.
@@ -367,11 +369,35 @@ fi
 
 if [ "$option" == 7 ]; then
  echo "Stopping Remote BBA Mode Service"
- systemctl stop remote_bba_mode &
+ systemctl stop remote_bba_mode
+ echo "Remote BBA Mode:"
+ echo -e "Status: \e[1;31mInactive\e[0m" 
  exit 0
 fi
 
 if [ "$option" == 8 ]; then
+ echo "Stopping Classic BBA Mode Service"
+ systemctl stop dreampi
+ systemctl stop dnsmasq
+ if [ "$classic_status" == "$gateway" ]; then
+  echo "Cleaning Classic BBA Mode Network Routing"
+  rm -rf /etc/dnsmasq.d/custom* /tmp/custom-dnsmasq.conf
+  iptables -F
+  iptables -t nat -F
+  ip addr flush dev $device
+ fi
+ systemctl restart dhcpcd 2> /dev/null
+ systemctl restart dnsmasq
+ echo "Restarting DreamPi Service (modem listening)"
+ systemctl restart dreampi
+ echo "Restarting Remote BBA Mode Service"
+ systemctl restart remote_bba_mode
+ echo "Classic BBA Mode (hotspot):"
+ echo -e "Status: \e[1;31mInactive\e[0m"
+ exit 0
+fi
+
+if [ "$option" == 9 ]; then
  echo "Exiting BBA Mode Menu"
  exit 0
 fi
@@ -394,6 +420,7 @@ bba_mode 4  > Start Manual List Dreamcast Now
 bba_mode 5  > Manage Custom Mac Address (DCNow Profile)
 bba_mode 6  > Start Remote BBA Mode Service
 bba_mode 7  > Stop  Remote BBA Mode Service
+bba_mode 8  > Stop Classic BBA Mode Service
 ------------------------------------------------------------"
 fi
 exit 0
