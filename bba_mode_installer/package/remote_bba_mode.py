@@ -236,9 +236,13 @@ def start_iptables_input():
             "iptables", "-A", "INPUT", "-p", "udp", "--dport", str(DNS_PORT),
             "-j", "LOG", "--log-prefix", "DNS_QUERY: "
         ])
+        
+        if open("/proc/sys/net/ipv4/ip_forward").read().strip() == "0":
+            os.system("sysctl -w net.ipv4.ip_forward=1")
+            
     except subprocess.CalledProcessError as e:
         logger.info("Error trying to add DNS_QUERY rule: {} -> {}".format(e))
-        
+
     global dns_rule_applied
     dns_rule_applied = True
     clean_logfile()
