@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # BBA Mode tool written by scrivanidc@gmail.com
-# -------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------
 # We are living our best Dreamcast Lives
-# -------------------------------------------------------------------------
-# Rev1.1 - jun/2023 - Rev1.2 sep/2023 - Rev.1.3 jan/2024 - Rev.2.0 Sep/2025
+# ---------------------------------------------------------------------------------------------
+# Rev1.1 - jun/2023 - Rev1.2 sep/2023 - Rev.1.3 jan/2024 - Rev.2.0 sep/2025 - Rev.2.1 jun/2026
 
 cd package/
 
@@ -35,12 +35,12 @@ Remote BBA Mode acts just when you stop dreampi
 service or unplug usb modem.
 
 If modem is plugged, DreamPi restarts
-Dreamcast uses RPi as Gateway and DNS Server
+Dreamcast uses RPi as DNS Server
 
 Dreamcast BBA settings example:
 IP:      192.168.x.20 - your regular one
 Subnet:  255.255.255.0
-Gateway: 192.168.0.5 - RaspberryPi [IP Address]
+Gateway: 192.168.0.1 - your regular one
 DNS1:    192.168.0.5 - RaspberryPi [IP Address]
 DNS2: Same as DNS1 or your regular one
 
