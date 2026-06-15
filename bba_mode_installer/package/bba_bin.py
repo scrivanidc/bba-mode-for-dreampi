@@ -16,11 +16,11 @@ from bba_dcnow import DreamcastNowService
 from datetime import datetime, timedelta
 
 # BBA Mode tool written by scrivanidc@gmail.com
-# ----------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------
 # We are living our best Dreamcast Lives
-# ----------------------------------------------------------------------------------
-# Rev1.1 - jun/2023 - Rev1.2 sep/2023 - Rev.1.3 jan/2024 - Rev.2.0 Sep/2025
-# ----------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------
+# Rev1.1 - jun/2023 - Rev1.2 sep/2023 - Rev.1.3 jan/2024 - Rev.2.0 Sep/2025 - Rev.2.1 jun/2026
+# ---------------------------------------------------------------------------------------------
 # This is a modificated version of original Kazades dreampi.py structure
 # All non usable elements where deleted
 # DNS query function game based implemented
@@ -30,7 +30,7 @@ from datetime import datetime, timedelta
 # Dreamcast Ethernet Devices:
 # Broadbad Adapter HIT-0400 Realtek RTL8139C 10/100 Mbps 100Base-T
 # LAN Adapter HIT-0300 Fujitsu MB86967 10/10 Mbps 10Base-T
-# ----------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------
 
 logger = logging.getLogger('bba_mode')
 
@@ -189,7 +189,9 @@ def dns():
         32: ("AUTHORIZE.VC-NFL2K2.GAMES.SEGA.NET", "2K Series: NFL 2K2"),
         33: ("dcplaya.dnslookup", "DCPlaya"),
         34: ("dreampipe.net", "Web Browsing"),
-        35: ("master.id-q3c.games.sega.net", "Quake III Arena Custom Maps")
+        35: ("master.id-q3c.games.sega.net", "Quake III Arena Custom Maps"),
+        36: ("page-bootstrap.dreamcast.com", "Propeller Arena"),
+        37: ("master.bomberman-hudson.games.sega.net", "Bomberman Online")
     }
  
     host, game_name = game_hosts.get(var, ("google.com", "Unknown"))

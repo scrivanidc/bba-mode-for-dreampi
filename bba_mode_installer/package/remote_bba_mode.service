@@ -1,5 +1,5 @@
 [Unit]
-Description=Remote BBA_Mode: Dreamcast uses RPI as Gateway and DNS Server to trigger DCNOW
+Description=Remote BBA_Mode: Dreamcast uses RPI as DNS Server to trigger DCNOW
 After=network.target
 After=dreampi.service
 

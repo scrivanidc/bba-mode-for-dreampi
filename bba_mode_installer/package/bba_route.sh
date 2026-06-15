@@ -5,10 +5,10 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # BBA Mode tool written by scrivanidc@gmail.com
-# -------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------
 # We are living our best Dreamcast Lives
-# -------------------------------------------------------------------------
-# Rev1.1 - jun/2023 - Rev1.2 sep/2023 - Rev.1.3 jan/2024 - Rev.2.0 Sep/2025
+# ---------------------------------------------------------------------------------------------
+# Rev1.1 - jun/2023 - Rev1.2 sep/2023 - Rev.1.3 jan/2024 - Rev.2.0 Sep/2025 - Rev.2.1 jun/2026
 
 systemctl stop dreampi
 #Change the IP Pattern below if is the same of your standard network
@@ -34,7 +34,7 @@ if [ -z $check ]; then
     echo $msg
     echo ""
     logger $msg
-	systemctl restart dreampi &
+    systemctl restart dreampi &
     pgrep -f bba_bin | sudo xargs kill -9 2>/dev/null
     pgrep -f bba_mode | sudo xargs kill -9 2>/dev/null
     exit 0
@@ -44,11 +44,15 @@ systemctl start network-online.target &> /dev/null
 
 iptables -F
 iptables -t nat -F
+iptables -t mangle -F
 iptables -t nat -A POSTROUTING -o $wlan -j MASQUERADE
 iptables -A FORWARD -i $wlan -o $eth -m state --state RELATED,ESTABLISHED -j ACCEPT
 iptables -A FORWARD -i $eth -o $wlan -j ACCEPT
 
 sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
+
+ip addr del $dhcp_range_end/24 dev $eth &> /dev/null
+pkill -9 dhclient
 
 ifconfig $eth down
 ifconfig $eth up
@@ -58,6 +62,9 @@ ifconfig $eth $ip_address netmask $netmask
 ip route del 0/0 dev $eth &> /dev/null
 
 systemctl stop dnsmasq
+
+# Clean dhcp lease
+truncate -s 0 /var/lib/misc/dnsmasq.leases &> /dev/null
 
 rm -rf /etc/dnsmasq.d/custom* &> /dev/null
 rm -rf /tmp/custom-dnsmasq.conf &> /dev/null
@@ -72,10 +79,17 @@ bogus-priv
 dhcp-range=$dhcp_range_start,$dhcp_range_end,$dhcp_time" > /tmp/custom-dnsmasq.conf
 
 cp /tmp/custom-dnsmasq.conf /etc/dnsmasq.d/custom-dnsmasq.conf 2>/dev/null
+
 systemctl start dnsmasq
 
 sed -i '/dnsmasq/d;/^exit/i rm -f /etc/dnsmasq.d/custom* 2> /dev/null\n' /etc/rc.local
 sed -i ':L;N;s/^\n$//;t L' /etc/rc.local
+
+if [ $1 = "bomberman" ]; then
+    ethtool -s $eth speed 100 duplex half autoneg off
+else
+    echo "$eth default config"
+fi
 
 # #>>> down here is rules in case you want to reuse .98 IP DMZ capacity on BBA Mode, that means, don't need to additionally open ports for raspberrypi IP.
 # #>>> port 22 ssh is set to reject any outside connections, this is for security.
@@ -86,6 +100,13 @@ sed -i ':L;N;s/^\n$//;t L' /etc/rc.local
 #iptables -I INPUT -p tcp --dport 22 -d $ip_address -j REJECT
 
 #driving strikers port forwarding rule
-iptables -t nat -A PREROUTING -p udp --dport 30099 -i wlan0 -j DNAT --to-destination $dhcp_range_end:30099
+iptables -t nat -A PREROUTING -p udp --dport 30099 -i $wlan -j DNAT --to-destination $dhcp_range_end:30099
+
 #classicube port forwarding rule
-iptables -t nat -A PREROUTING -p udp --dport 25565 -i wlan0 -j DNAT --to-destination $dhcp_range_end:25565
+iptables -t nat -A PREROUTING -p udp --dport 25565 -i $wlan -j DNAT --to-destination $dhcp_range_end:25565
+
+#nuquake port forwarding rule
+iptables -t nat -A PREROUTING -p udp --dport 26000 -i $wlan -j DNAT --to-destination $dhcp_range_end:26000
+iptables -t nat -A PREROUTING -p tcp --dport 26000 -i $wlan -j DNAT --to-destination $dhcp_range_end:26000
+
+#sudo iptables -t nat -L -n -v

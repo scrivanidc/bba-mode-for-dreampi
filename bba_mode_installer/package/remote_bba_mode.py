@@ -15,28 +15,31 @@ import shlex
 import bba_dcnow_config
 from bba_dcnow import DreamcastNowService
 
-# Remote BBA Mode tool written by scrivanidc@gmail.com - sep/2025
+# Remote BBA Mode tool written by scrivanidc@gmail.com
 # ---------------------------------------------------------------
 # We are living our best Dreamcast Lives
 # ---------------------------------------------------------------
+# Rev.2.0 sep/2025 - Rev.2.1 jun/2026
 
 DNS_PORT = 53
 IPTABLES_LOG = "/var/log/iptables.log"
 CHECK_INTERVAL = 3
-TIMEOUT = 120
 SERVICE_DEPENDENCY = "dreampi.service"
 
 session = None
 dcnow_on = False
 running = True
 active_ip = None
-inactive_ip = None
 dns_rule_applied = False
-traffic_rule_applied = False
 session_closed = True
-last_traffic_time = None
-last_traffic_line = None
 restart_dreampi = 0
+
+
+PING_INTERVAL = 30
+PING_FAILURE_LIMIT = 3
+
+last_ping_time = 0
+ping_failures = 0
 
 version_file = "/home/pi/dreampi/bba_mode/bba_version.txt"
 log_file = "/home/pi/dreampi/bba_mode/bba_mode.log"
@@ -214,7 +217,7 @@ def check_for_update():
                 print("Update complete.")
                 
                 do_post(desc, remote_version)
-                
+                subprocess.call(["sudo", "systemctl", "restart", "remote_bba_mode.service"])
             except Exception as e:
                 print("Installation failed: {}".format(e))
         else:
@@ -236,10 +239,7 @@ def start_iptables_input():
             "iptables", "-A", "INPUT", "-p", "udp", "--dport", str(DNS_PORT),
             "-j", "LOG", "--log-prefix", "DNS_QUERY: "
         ])
-        
-        if open("/proc/sys/net/ipv4/ip_forward").read().strip() == "0":
-            os.system("sysctl -w net.ipv4.ip_forward=1")
-            
+
     except subprocess.CalledProcessError as e:
         logger.info("Error trying to add DNS_QUERY rule: {} -> {}".format(e))
 
@@ -248,26 +248,6 @@ def start_iptables_input():
     clean_logfile()
     logger.info("Start Monitoring DNS Traffic - Remote BBA_MODE.")
 
-def start_iptables_forward(ip):
-    try:
-        subprocess.call([
-            "iptables", "-A", "FORWARD", "-s", ip,
-            "-j", "LOG", "--log-prefix", "DC_TRAFFIC: "
-        ])
-    except subprocess.CalledProcessError as e:
-        logger.info("Error trying to remove DC_TRAFFIC rule: {} -> {}".format(e))        
-    
-def stop_iptables_forward():
-    output = subprocess.check_output(["iptables-save"]).decode()
-    for line in output.splitlines():
-        if "DC_TRAFFIC:" in line:
-            rule = line.replace("-A", "-D", 1)
-            logger.info("Removing rule: {}".format(rule))
-            try:
-                subprocess.call(["iptables"] + shlex.split(rule))
-            except subprocess.CalledProcessError as e:
-                logger.info("Error trying to remove rule: {} -> {}".format(rule, e))
-
 def clean_logfile():
     try:
         with open(IPTABLES_LOG, "w") as f:
@@ -275,20 +255,29 @@ def clean_logfile():
         logger.info("iptables log cleared.")
     except Exception as e:
         logger.info("Error clearing iptables log: %s" % e)
-
+   
 def cleanup_iptables_logging():
     try:
         subprocess.call([
-            "iptables", "-D", "INPUT", "-p", "udp", "--dport", str(DNS_PORT),
-            "-j", "LOG", "--log-prefix", "DNS_QUERY: "
+            "iptables",
+            "-D",
+            "INPUT",
+            "-p",
+            "udp",
+            "--dport",
+            str(DNS_PORT),
+            "-j",
+            "LOG",
+            "--log-prefix",
+            "DNS_QUERY: "
         ])
     except subprocess.CalledProcessError as e:
-        logger.info("Error trying to remove DNS_QUERY rule: {} -> {}".format(e))
+        logger.info(
+            "Error trying to remove DNS_QUERY rule: {}".format(e)
+        )
 
-    stop_iptables_forward()
-       
     logger.info("iptables rules removed.")
-    logger.info("Stop Monitoring DNS Traffic - Remote BBA_MODE.")
+    logger.info("Stop Monitoring DNS Traffic - Remote BBA_MODE.")    
 
 def get_recent_ips(prefix, lines=100):
     try:
@@ -306,18 +295,6 @@ def get_recent_ips(prefix, lines=100):
     except Exception as e:
         logger.info("Error reading logs: %s" % e)
         return set()
-
-def get_last_traffic_line(ip):
-    try:
-        with open(IPTABLES_LOG, "r") as f:
-            logs = f.readlines()[-100:]
-        for line in reversed(logs):
-            if "DC_TRAFFIC:" in line and ("SRC=%s" % ip) in line:
-                return line.strip()
-        return None
-    except Exception as e:
-        logger.info("Error retrieving last traffic line: %s" % e)
-        return None
 
 def signal_handler(sig, frame):
     global running
@@ -347,81 +324,150 @@ def stop_dcnow():
                 dcnow_on = False
         except Exception as e:
             logger.info("Error ending Dreamcast Now session: %s" % e)
-    
-    
+
+def ping_host(ip):
+    try:
+        result = subprocess.call(
+            ["ping", "-c", "1", "-W", "2", ip],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        return result == 0
+    except Exception:
+        return False
+
+
+def reset_session():
+    global active_ip
+    global ping_failures
+    global last_ping_time
+    global session_closed
+
+    stop_dcnow()
+
+    active_ip = None
+    ping_failures = 0
+    last_ping_time = 0
+    session_closed = True
+
+    clean_logfile()
 
 def monitor_dns_activity():
-    global active_ip, inactive_ip, dns_rule_applied, traffic_rule_applied, session_closed, last_traffic_time, last_traffic_line, restart_dreampi
+
+    global active_ip
+    global dns_rule_applied
+    global session_closed
+    global restart_dreampi
+    global ping_failures
+    global last_ping_time
+
     while running:
+
         if is_dreampi_active() == "active":
+
             stop_dcnow()
+
             if dns_rule_applied:
                 cleanup_iptables_logging()
                 dns_rule_applied = False
-            if active_ip or inactive_ip:
-                session_closed = True
-                active_ip = None
-                inactive_ip = None
-            time.sleep(CHECK_INTERVAL*2)
+
+            active_ip = None
+            ping_failures = 0
+            last_ping_time = 0
+            session_closed = True
+
+            time.sleep(CHECK_INTERVAL * 2)
             continue
+
         elif not dns_rule_applied:
             start_iptables_input()
 
         now = time.time()
 
         if dns_rule_applied:
-            dns_sources = get_recent_ips("DNS_QUERY:", lines=100)
+
+            dns_sources = get_recent_ips(
+                "DNS_QUERY:",
+                lines=100
+            )
+
             for ip in dns_sources:
-                if ip != active_ip and ip != inactive_ip and session_closed:
 
-                    last_traffic_time = now
-                    logger.info("DNS query detected from %s. Starting Dreamcast Now session." % ip)
-                    
-                    start_dcnow()
-                    
-                    if traffic_rule_applied:
-                        stop_iptables_forward()
+                if session_closed:
 
-                    start_iptables_forward(ip)
-                    traffic_rule_applied = True
-                    session_closed = False
+                    logger.info(
+                        "DNS query detected from %s. Starting Dreamcast Now session."
+                        % ip
+                    )
+
                     active_ip = ip
-                    inactive_ip = None
+
+                    ping_failures = 0
+                    last_ping_time = 0
+
+                    session_closed = False
+
+                    start_dcnow()
+
                     break
 
-        if active_ip:
-            current_line = get_last_traffic_line(active_ip)
-            if current_line and current_line != last_traffic_line:
-                last_traffic_line = current_line
-                last_traffic_time = now
+        if active_ip and not session_closed:
 
-            elif now - last_traffic_time > TIMEOUT:
-                logger.info("No traffic change from %s for %d seconds. Ending session." % (active_ip, TIMEOUT))
-                stop_dcnow()
-                inactive_ip = active_ip
-                              
-                session_closed = True
-                active_ip = None
-                last_traffic_time = None
-                clean_logfile()
-                
-        if inactive_ip:
-            current_line = get_last_traffic_line(inactive_ip)
-            if current_line and current_line != last_traffic_line:
-                last_traffic_line = current_line
-                last_traffic_time = now
-                
-                logger.info("Traffic detected from %s. Starting Dreamcast Now session." % inactive_ip)
-                start_dcnow()
-                active_ip = inactive_ip
-                inactive_ip = None
-                session_closed = False
-        
-        if glob.glob("/dev/ttyACM*") and is_dreampi_active() == "failed" and restart_dreampi <= CHECK_INTERVAL*2:
-               restart_dreampi += 1
-               logger.info("USB Modem detected - Restarting DreamPi Service. {}/{}".format(restart_dreampi,CHECK_INTERVAL*2))
-               stop_dcnow()
-               subprocess.call(["systemctl", "start", SERVICE_DEPENDENCY])
+            if now - last_ping_time >= PING_INTERVAL:
+
+                last_ping_time = now
+
+                if ping_host(active_ip):
+
+                    ping_failures = 0
+
+                    logger.info(
+                        "Ping OK from %s. Keeping session alive."
+                        % active_ip
+                    )
+
+                else:
+
+                    ping_failures += 1
+
+                    logger.info(
+                        "Ping failed from %s (%d/%d)"
+                        % (
+                            active_ip,
+                            ping_failures,
+                            PING_FAILURE_LIMIT
+                        )
+                    )
+
+                    if ping_failures >= PING_FAILURE_LIMIT:
+
+                        logger.info(
+                            "Host %s is offline. Ending Dreamcast Now session."
+                            % active_ip
+                        )
+
+                        reset_session()
+
+        if (
+            glob.glob("/dev/ttyACM*")
+            and is_dreampi_active() == "failed"
+            and restart_dreampi <= CHECK_INTERVAL * 2
+        ):
+
+            restart_dreampi += 1
+
+            logger.info(
+                "USB Modem detected - Restarting DreamPi Service. {}/{}".format(
+                    restart_dreampi,
+                    CHECK_INTERVAL * 2
+                )
+            )
+
+            stop_dcnow()
+
+            subprocess.call(
+                ["systemctl", "start", SERVICE_DEPENDENCY]
+            )
 
         time.sleep(CHECK_INTERVAL)
 

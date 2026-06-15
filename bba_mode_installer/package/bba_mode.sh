@@ -8,14 +8,15 @@ fi
 min=$2
 
 # BBA Mode tool written by scrivanidc@gmail.com
-# -------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------
 # We are living our best Dreamcast Lives
-# -------------------------------------------------------------------------
-# Rev1.1 - jun/2023 - Rev1.2 sep/2023 - Rev.1.3 jan/2024 - Rev.1.4 Sep/2025
+# ---------------------------------------------------------------------------------------------
+# Rev1.1 - jun/2023 - Rev1.2 sep/2023 - Rev.1.3 jan/2024 - Rev.2.0 sep/2025 - Rev.2.1 jun/2026
 
 #BBA Mode tool files locations
 bba_modesh="/home/pi/dreampi/bba_mode/bba_mode.sh"
 eth_routesh="/home/pi/dreampi/bba_mode/bba_route.sh"
+ppp_routesh="/home/pi/dreampi/bba_mode/bba_route_dcnet.sh"
 bba_binsh="/home/pi/dreampi/bba_mode/bba_bin.sh"
 bba_binpy="/home/pi/dreampi/bba_mode/bba_bin.py"
 bba_mac="/home/pi/dreampi/bba_mode/bba_mac.txt"
@@ -47,6 +48,7 @@ bba_mode --help   > Parameters help
 Classic BBA Mode (hotspot): 0,1,2,3"
 device=$(grep -m 1 "eth=" "$eth_routesh" | cut -d '"' -f 2)
 gateway=$(grep -m 1 "ip_address=" "$eth_routesh" | cut -d '"' -f 2)
+gatewaydcnet=$(grep -m 1 "ip_address=" "$ppp_routesh" | cut -d '"' -f 2)
 classic_status=$(ip -o -4 addr show $device | awk '{print $4}' | cut -d/ -f1)
 if [ "$classic_status" == "$gateway" ]; then
     echo -e "Status: \e[1;32mActive\e[0m"
@@ -67,16 +69,18 @@ if [ -z "$1" ]; then
 echo "
  Please type the number of your choice
 
- 0  > Start BBA Mode immediately
- 1  > Start BBA Mode after a wait time
- 2  > Enable on every startup after a wait time
- 3  > Disable from every startup
- 4  > Start Manual List Dreamcast Now
- 5  > Manage Custom Mac Address (DCNow Profile)
- 6  > Start Remote BBA Mode Service
- 7  > Stop  Remote BBA Mode Service
- 8  > Stop Classic BBA Mode Service
- 9  > Just exit
+ 0   > Start BBA Mode immediately
+ 1   > Start BBA Mode after a wait time
+ 2   > Enable on every startup after a wait time
+ 3   > Disable from every startup
+ 4   > Start Manual List Dreamcast Now
+ 5   > Manage Custom Mac Address (DCNow Profile)
+ 6   > Start Remote BBA Mode Service
+ 7   > Stop  Remote BBA Mode Service
+ 8   > Stop Classic BBA Mode Service
+ 9   > Start Classic BBA Mode Bomberman enhanced connection
+ 10  > Start Classic BBA Mode DCNET Tunnel
+ 11  > Just exit
 ------------------------------------------------------------"
     read -p 'Option: ' option
     if [[ ! $option =~ $chk && -n $option ]]; then echo "Not a number"; fi
@@ -208,7 +212,9 @@ if [ "$option" == 4 ]; then
     echo "33 - DCPlaya"
     echo "34 - Web Browsing"
     echo "35 - Quake III Arena Custom Maps"
-    echo "36 - Reboot and restart standard DreamPi (modem)"
+    echo "36 - Propeller Arena"
+    echo "37 - Bomberman Online"
+    echo "38 - Reboot and restart standard DreamPi (modem)"
     echo ""
     echo "Choose game number > "
     read n
@@ -218,9 +224,9 @@ if [ "$option" == 4 ]; then
       exit 0
     fi
 
-    if [[ $n -gt 36 ]]; then
+    if [[ $n -gt 38 ]]; then
       echo "Invalid option"
-    elif [[ $n -eq 36 ]]; then
+    elif [[ $n -eq 38 ]]; then
       reboot
     else
       echo ""
@@ -363,6 +369,7 @@ if [ "$option" == 6 ]; then
  echo "Starting Remote BBA Mode Service"
  echo "Dreamcast uses RPI IP Address(below) as Gateway and DNS Server to trigger DCNOW."
  hostname -I | awk '{print $1}' | xargs -I{} echo -e "\e[1;32m{}\e[0m"
+ systemctl enable remote_bba_mode.service
  systemctl start remote_bba_mode &
  exit 0
 fi
@@ -379,12 +386,17 @@ if [ "$option" == 8 ]; then
  echo "Stopping Classic BBA Mode Service"
  systemctl stop dreampi
  systemctl stop dnsmasq
- if [ "$classic_status" == "$gateway" ]; then
+ #if [ "$classic_status" == "$gateway" ]   ; then
+ if [ "$classic_status" == "$gateway" ] || [ "$classic_status" == "$gatewaydcnet" ]; then
   echo "Cleaning Classic BBA Mode Network Routing"
   rm -rf /etc/dnsmasq.d/custom* /tmp/custom-dnsmasq.conf
   iptables -F
   iptables -t nat -F
+  iptables -t mangle -F
   ip addr flush dev $device
+  killall pppd 2>/dev/null
+  ip rule del fwmark 10 table 100 2>/dev/null
+  ip route flush table 100 2>/dev/null
  fi
  systemctl restart dhcpcd 2> /dev/null
  systemctl restart dnsmasq
@@ -398,6 +410,29 @@ if [ "$option" == 8 ]; then
 fi
 
 if [ "$option" == 9 ]; then
+    clean_session
+    current_tty=$(tty)
+	echo "Classic BBA Mode (hotspot) Bomberman"
+	echo -e "Status: \e[1;32mActive\e[0m"
+    if [ "$current_tty" == "/dev/tty1" ] || [ "$2" == 0 ]; then
+        bash -c "$bba_binsh 0 bomberman" | tee /tmp/bba.log
+    else
+        bash -c "$bba_binsh 0 bomberman" | tee /tmp/bba.log &
+    fi
+    exit 0
+fi
+
+if [ "$option" == 10 ]; then
+    clean_session
+    echo "Classic BBA Mode (hotspot) DCNET Tunnel"
+    echo -e "Status: \e[1;32mActive\e[0m"
+    bash -c "$ppp_routesh 0" | tee /tmp/bba.log
+    exit 0
+fi
+
+
+
+if [ "$option" == 11 ]; then
  echo "Exiting BBA Mode Menu"
  exit 0
 fi
@@ -421,6 +456,8 @@ bba_mode 5  > Manage Custom Mac Address (DCNow Profile)
 bba_mode 6  > Start Remote BBA Mode Service
 bba_mode 7  > Stop  Remote BBA Mode Service
 bba_mode 8  > Stop Classic BBA Mode Service
+bba_mode 9  > Start Classic BBA Mode Bomberman enhanced connection
+bba_mode 10 > Start Classic BBA Mode DCNET Tunnel
 ------------------------------------------------------------"
 fi
 exit 0

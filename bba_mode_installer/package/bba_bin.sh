@@ -5,15 +5,16 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # BBA Mode tool written by scrivanidc@gmail.com
-# -------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------
 # We are living our best Dreamcast Lives
-# -------------------------------------------------------------------------
-# Rev1.1 - jun/2023 - Rev1.2 sep/2023 - Rev.1.3 jan/2024 - Rev.2.0 Sep/2025
+# ---------------------------------------------------------------------------------------------
+# Rev1.1 - jun/2023 - Rev1.2 sep/2023 - Rev.1.3 jan/2024 - Rev.2.0 sep/2025 - Rev.2.1 jun/2026
 
 #BBA Mode tool files locations
 eth_routesh="/home/pi/dreampi/bba_mode/bba_route.sh"
 bba_binsh="/home/pi/dreampi/bba_mode/bba_bin.sh"
 bba_binpy="/home/pi/dreampi/bba_mode/bba_bin.py"
+bomberman="$2"
 
 clean_session() {
   killall -q tcpdump 2>/dev/null
@@ -65,7 +66,7 @@ We are living our best Dreamcast Lives
 -------------------------------------------------------------------------
 "
     #Start eth sharing route
-    bash -c "$eth_routesh"
+    bash -c "$eth_routesh $bomberman"
     active="no"
     logger "Starting BBA Mode ..."
     logger "Set on DC> IP=$ech1 Netmask=$ech2 Gateway/DHCPServer=$ech3 DNS1=$ech3 DNS2=$ech4"
