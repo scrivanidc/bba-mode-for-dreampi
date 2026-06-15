@@ -14,6 +14,7 @@ Release 1   - jun/2023, Release 1.2 - sep/2023 , Release 1.3 - jan/2024, Release
 - Classic BBA Mode (Hotspot): New DCNET Tunnel, Manual List DCNOW up to date, New Bomberman enhanced option.
 - Remote BBA Mode: Now uses RPI only as DNS Server, not Gateway anymore, easier, stronger/stable connection.
 
+Update from 2.0 to 2.1 is made automatically by the code.
 
 # Remote BBA Mode for Dreamcast
 
