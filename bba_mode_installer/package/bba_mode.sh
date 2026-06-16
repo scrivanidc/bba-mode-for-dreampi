@@ -367,7 +367,7 @@ fi
 
 if [ "$option" == 6 ]; then
  echo "Starting Remote BBA Mode Service"
- echo "Dreamcast uses RPI IP Address(below) as Gateway and DNS Server to trigger DCNOW."
+ echo "Dreamcast uses RPI IP Address(below) as DNS Server to trigger DCNOW."
  hostname -I | awk '{print $1}' | xargs -I{} echo -e "\e[1;32m{}\e[0m"
  systemctl enable remote_bba_mode.service
  systemctl start remote_bba_mode &
