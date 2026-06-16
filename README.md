@@ -105,5 +105,6 @@ Classic BBA Mode, which connects the BBA to the RPI's RJ45 port and uses it as a
   <br> 
 
 # Print
-<img width="703" height="603" alt="image" src="https://github.com/user-attachments/assets/d97a5b81-1ee0-4ef2-b668-08f14d1f54b6" />
+<img width="619" height="603" alt="image" src="https://github.com/user-attachments/assets/03e66d86-baa5-4b68-8c4e-5e7bc7b11805" />
+
 
